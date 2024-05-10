@@ -144,10 +144,10 @@ def handle_voice(message: telebot.types.Message):
         user_id = message.from_user.id
         
         # Проверка на максимальное количество пользователей
-                status_check_users, error_message = check_number_of_users(user_id)
-                if not status_check_users:
-                    bot.send_message(user_id, error_message)
-                    return
+        status_check_users, error_message = check_number_of_users(user_id)
+        if not status_check_users:
+            bot.send_message(user_id, error_message)
+            return
 
         # Проверка на доступность аудиоблоков
         stt_blocks, error_message = is_stt_block_limit(user_id, message.voice.duration)
@@ -224,7 +224,7 @@ def handle_text(message):
         # получаем сумму уже потраченных токенов + токенов в новом сообщении и оставшиеся лимиты пользователя
         total_gpt_tokens, error_message = is_gpt_token_limit(last_messages, total_spent_tokens)
         if error_message:
-                # если что-то пошло не так — уведомляем пользователя и прекращаем выполнение функции
+            # если что-то пошло не так — уведомляем пользователя и прекращаем выполнение функции
             bot.send_message(user_id, error_message)
             return
 
@@ -232,7 +232,7 @@ def handle_text(message):
         status_gpt, answer_gpt, tokens_in_answer = ask_gpt(last_messages)
         # GPT: обрабатываем ответ от GPT
         if not status_gpt:
-                # если что-то пошло не так — уведомляем пользователя и прекращаем выполнение функции
+            # если что-то пошло не так — уведомляем пользователя и прекращаем выполнение функции
             bot.send_message(user_id, answer_gpt)
             return
         # сумма всех потраченных токенов + токены в ответе GPT
