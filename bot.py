@@ -52,6 +52,92 @@ def support(message):
     bot.send_message(message.from_user.id, text=text, reply_markup=create_keyboard(keyboard))
 
 
+@bot.message_handler(commands=['tts'])
+def tts_handler(message):
+    user_id = message.from_user.id
+    bot.send_message(user_id, 'Отправь следующим сообщеним текст, чтобы я его озвучил!')
+    bot.register_next_step_handler(message, tts)
+
+def tts(message):
+    user_id = message.from_user.id
+    text = message.text
+
+    logging.info('Проверка, что сообщение действительно текстовое')
+    if message.content_type != 'text':
+        bot.send_message(user_id, 'Отправь текстовое сообщение')
+        return
+
+    logging.info('Считаем символы в тексте и проверяем сумму потраченных символов')
+    text_symbol = is_tts_symbol_limit(message, text)
+    if text_symbol is None:
+        return
+
+    logging.info('Записываем сообщение и кол-во символов в БД')
+    insert_row(user_id, text, "tts_symbols", text_symbol)
+
+    logging.info('Получаем статус и содержимое ответа от SpeechKit')
+    status, content = text_to_speech(text)
+
+    # Если статус True - отправляем голосовое сообщение, иначе - сообщение об ошибке
+    if status:
+        logging.info('Отправка голосового сообщения')
+        bot.send_voice(user_id, content)
+    else:
+        logging.info('Отправка сообщения об ошибке')
+        bot.send_message(user_id, content)
+
+
+
+
+
+# Обрабатываем команду /stt
+@bot.message_handler(commands=['stt'])
+def stt_handler(message):
+    user_id = message.from_user.id
+    bot.send_message(user_id, 'Отправь голосовое сообщение, чтобы я его распознал!')
+    bot.register_next_step_handler(message, stt)
+
+
+# Переводим голосовое сообщение в текст после команды stt
+def stt(message):
+    user_id = message.from_user.id
+
+    logging.info('Проверка, что сообщение действительно голосовое')
+    if not message.voice:
+        return
+
+    logging.info('Считаем аудиоблоки и проверяем сумму потраченных аудиоблоков')
+    stt_blocks = is_stt_block_limit(message, message.voice.duration)
+    if not stt_blocks:
+        return
+
+    file_id = message.voice.file_id
+    logging.info('получаем id голосового сообщения')
+    file_info = bot.get_file(file_id)
+    logging.info('получаем информацию о голосовом сообщении')
+    file = bot.download_file(file_info.file_path)
+    logging.info('скачиваем голосовое сообщение')
+
+    logging.info('Получаем статус и содержимое ответа от SpeechKit')
+    status, text = speech_to_text(file)  # преобразовываем голосовое сообщение в текст
+
+    # Если статус True - отправляем текст сообщения и сохраняем в БД, иначе - сообщение об ошибке
+    if status:
+        logging.info('Записываем сообщение и кол-во аудиоблоков в БД')
+        insert_row(user_id, text, 'stt_blocks', stt_blocks)
+        bot.send_message(user_id, text, reply_to_message_id=message.id)
+    else:
+        bot.send_message(user_id, text)
+
+
+
+@bot.message_handler(commands=['debug'])
+def debug(message):
+    logging.info("Открытие файла с логами.")
+    with open("logs.txt", "rb") as f:
+        bot.send_document(message.chat.id, f)
+
+
 # Декоратор для обработки голосовых сообщений, полученных ботом
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
@@ -163,92 +249,6 @@ def handle_text(message):
         logging.error(e)  # если ошибка — записываем её в логи
         bot.send_message(message.from_user.id, "Не получилось ответить. Попробуй написать другое сообщение")
 
-
-
-@bot.message_handler(commands=['tts'])
-def tts_handler(message):
-    user_id = message.from_user.id
-    bot.send_message(user_id, 'Отправь следующим сообщеним текст, чтобы я его озвучил!')
-    bot.register_next_step_handler(message, tts)
-
-def tts(message):
-    user_id = message.from_user.id
-    text = message.text
-
-    logging.info('Проверка, что сообщение действительно текстовое')
-    if message.content_type != 'text':
-        bot.send_message(user_id, 'Отправь текстовое сообщение')
-        return
-
-    logging.info('Считаем символы в тексте и проверяем сумму потраченных символов')
-    text_symbol = is_tts_symbol_limit(message, text)
-    if text_symbol is None:
-        return
-
-    logging.info('Записываем сообщение и кол-во символов в БД')
-    insert_row(user_id, text, "tts_symbols", text_symbol)
-
-    logging.info('Получаем статус и содержимое ответа от SpeechKit')
-    status, content = text_to_speech(text)
-
-    # Если статус True - отправляем голосовое сообщение, иначе - сообщение об ошибке
-    if status:
-        logging.info('Отправка голосового сообщения')
-        bot.send_voice(user_id, content)
-    else:
-        logging.info('Отправка сообщения об ошибке')
-        bot.send_message(user_id, content)
-
-
-
-
-
-# Обрабатываем команду /stt
-@bot.message_handler(commands=['stt'])
-def stt_handler(message):
-    user_id = message.from_user.id
-    bot.send_message(user_id, 'Отправь голосовое сообщение, чтобы я его распознал!')
-    bot.register_next_step_handler(message, stt)
-
-
-# Переводим голосовое сообщение в текст после команды stt
-def stt(message):
-    user_id = message.from_user.id
-
-    logging.info('Проверка, что сообщение действительно голосовое')
-    if not message.voice:
-        return
-
-    logging.info('Считаем аудиоблоки и проверяем сумму потраченных аудиоблоков')
-    stt_blocks = is_stt_block_limit(message, message.voice.duration)
-    if not stt_blocks:
-        return
-
-    file_id = message.voice.file_id
-    logging.info('получаем id голосового сообщения')
-    file_info = bot.get_file(file_id)
-    logging.info('получаем информацию о голосовом сообщении')
-    file = bot.download_file(file_info.file_path)
-    logging.info('скачиваем голосовое сообщение')
-
-    logging.info('Получаем статус и содержимое ответа от SpeechKit')
-    status, text = speech_to_text(file)  # преобразовываем голосовое сообщение в текст
-
-    # Если статус True - отправляем текст сообщения и сохраняем в БД, иначе - сообщение об ошибке
-    if status:
-        logging.info('Записываем сообщение и кол-во аудиоблоков в БД')
-        insert_row(user_id, text, 'stt_blocks', stt_blocks)
-        bot.send_message(user_id, text, reply_to_message_id=message.id)
-    else:
-        bot.send_message(user_id, text)
-
-
-
-@bot.message_handler(commands=['debug'])
-def debug(message):
-    logging.info("Открытие файла с логами.")
-    with open("logs.txt", "rb") as f:
-        bot.send_document(message.chat.id, f)
 
 # обрабатываем все остальные типы сообщений
 @bot.message_handler(func=lambda: True)
