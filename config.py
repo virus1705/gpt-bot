@@ -16,7 +16,7 @@ MAX_USER_GPT_TOKENS = 2_000
 MAX_TTS_SYMBOLS = 500
 
 LOGS = f'{HOME_DIR}/logs.txt'  # файл для логов
-DB_FILE = 'messages.db'  # файл для базы данных
+DB_FILE = f'{HOME_DIR}/messages.db'  # файл для базы данных
 SYSTEM_PROMPT = [{'role': 'system', 'text': 'Ты веселый собеседник. Общайся с пользователем на "ты" и используй юмор. '
                                             'Поддерживай диалог. Не объясняй пользователю, что ты умеешь и можешь. '
                                             'Изображай человека'}]
