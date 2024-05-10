@@ -6,7 +6,7 @@ from yandex_gpt import *
 from validators import *
 from database import *
 create_database()
-from creds.creds import get_bot_token
+from creds import get_bot_token
 
 bot = telebot.TeleBot(get_bot_token())
 
