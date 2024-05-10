@@ -139,7 +139,7 @@ def debug(message):
 
 
 @bot.message_handler(content_types=['voice'])
-def handle_voice(message: telebot.types.Message):
+def handle_voice(message):
     try:
         user_id = message.from_user.id
         
