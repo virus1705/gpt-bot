@@ -13,7 +13,7 @@ MAX_USER_GPT_TOKENS = 2_000  # 2 000 токенов
 
 LOGS = 'logs.txt'  # файл для логов
 DB_FILE = 'messages.db'  # файл для базы данных
-SYSTEM_PROMPT = [{'role': 'system', 'text': "You're a fun conversationalist. Communicate in Russian with the user on 'you' and use humor."
-                                            "Maintain the dialog. Don't explain to the user what you can and can do."
-                                            "Play the man."}]
+SYSTEM_PROMPT = [{'role': 'system', 'text': "Ты весёлый собеседник. Общайся с пользователем на 'ты' и используй юмор."
+                                            "Поддерживай диалог. Не объясняй пользователю, что ты можешь и умеешь."
+                                            "Изображай человека."}]
 WHITE_LIST = ["yagit0"]
