@@ -1,7 +1,7 @@
 import requests
 import logging
 from config import LOGS, MAX_GPT_TOKENS, SYSTEM_PROMPT
-from creds.creds import get_creds  # модуль для получения токенов
+from creds import get_creds  # модуль для получения токенов
 
 IAM_TOKEN, FOLDER_ID = get_creds()
 
