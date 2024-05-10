@@ -2,18 +2,18 @@ BOT_TOKEN_PATH = "creds/bot_token.txt"
 IAM_TOKEN_PATH = "creds/iam-token.txt"
 FOLDER_ID_PATH = 'creds/folder_id.txt'
 
-MAX_USERS = 3  # максимальное кол-во пользователей
-MAX_GPT_TOKENS = 120  # максимальное кол-во токенов в ответе GPT
-COUNT_LAST_MSG = 4  # кол-во последних сообщений из диалога
+MAX_USERS = 3  # РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»-РІРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№
+MAX_GPT_TOKENS = 120  # РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»-РІРѕ С‚РѕРєРµРЅРѕРІ РІ РѕС‚РІРµС‚Рµ GPT
+COUNT_LAST_MSG = 4  # РєРѕР»-РІРѕ РїРѕСЃР»РµРґРЅРёС… СЃРѕРѕР±С‰РµРЅРёР№ РёР· РґРёР°Р»РѕРіР°
 
-# лимиты для пользователя
-MAX_USER_STT_BLOCKS = 10  # 10 аудиоблоков
-MAX_USER_TTS_SYMBOLS = 5_000  # 5 000 символов
-MAX_USER_GPT_TOKENS = 2_000  # 2 000 токенов
+# Р»РёРјРёС‚С‹ РґР»СЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+MAX_USER_STT_BLOCKS = 10  # 10 Р°СѓРґРёРѕР±Р»РѕРєРѕРІ
+MAX_USER_TTS_SYMBOLS = 5_000  # 5 000 СЃРёРјРІРѕР»РѕРІ
+MAX_USER_GPT_TOKENS = 2_000  # 2 000 С‚РѕРєРµРЅРѕРІ
 
-LOGS = 'logs.txt'  # файл для логов
-DB_FILE = 'messages.db'  # файл для базы данных
-SYSTEM_PROMPT = [{'role': 'system', 'text': 'Ты веселый собеседник. Общайся с пользователем на "ты" и используй юмор. '
-                                            'Поддерживай диалог. Не объясняй пользователю, что ты умеешь и можешь. '
-                                            'Изображай человека'}]  # список с системным промтом
+LOGS = 'logs.txt'  # С„Р°Р№Р» РґР»СЏ Р»РѕРіРѕРІ
+DB_FILE = 'messages.db'  # С„Р°Р№Р» РґР»СЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С…
+SYSTEM_PROMPT = [{'role': 'system', 'text': "You're a fun conversationalist. Communicate in Russian with the user on 'you' and use humor."
+                                            "Maintain the dialog. Don't explain to the user what you can and can do."
+                                            "Play the man."}]
 WHITE_LIST = ["yagit0"]
