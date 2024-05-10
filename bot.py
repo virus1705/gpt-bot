@@ -138,25 +138,24 @@ def debug(message):
         bot.send_document(message.chat.id, f)
 
 
-# Декоратор для обработки голосовых сообщений, полученных ботом
 @bot.message_handler(content_types=['voice'])
-def handle_voice(message):
+def handle_voice(message: telebot.types.Message):
     try:
         user_id = message.from_user.id
+        
+        # Проверка на максимальное количество пользователей
+                status_check_users, error_message = check_number_of_users(user_id)
+                if not status_check_users:
+                    bot.send_message(user_id, error_message)
+                    return
 
-        logging.info('Проверка на максимальное количество пользователей')
-        status_check_users, error_message = check_number_of_users(user_id)
-        if not status_check_users:
-            bot.send_message(user_id, error_message)
-            return
-
-        logging.info('Проверка на доступность аудиоблоков')
+        # Проверка на доступность аудиоблоков
         stt_blocks, error_message = is_stt_block_limit(user_id, message.voice.duration)
         if error_message:
             bot.send_message(user_id, error_message)
             return
 
-        logging.info('Обработка голосового сообщения')
+        # Обработка голосового сообщения
         file_id = message.voice.file_id
         file_info = bot.get_file(file_id)
         file = bot.download_file(file_info.file_path)
@@ -165,40 +164,39 @@ def handle_voice(message):
             bot.send_message(user_id, stt_text)
             return
 
-        logging.info('Запись в БД')
+        # Запись в БД
         add_message(user_id=user_id, full_message=[stt_text, 'user', 0, 0, stt_blocks])
 
-        logging.info('Проверка на доступность GPT-токенов')
+        # Проверка на доступность GPT-токенов
         last_messages, total_spent_tokens = select_n_last_messages(user_id, COUNT_LAST_MSG)
         total_gpt_tokens, error_message = is_gpt_token_limit(last_messages, total_spent_tokens)
         if error_message:
             bot.send_message(user_id, error_message)
             return
 
-        logging.info('Запрос к GPT и обработка ответа')
+        # Запрос к GPT и обработка ответа
         status_gpt, answer_gpt, tokens_in_answer = ask_gpt(last_messages)
         if not status_gpt:
             bot.send_message(user_id, answer_gpt)
             return
         total_gpt_tokens += tokens_in_answer
 
-        logging.info('Проверка на лимит символов для SpeechKit')
+        # Проверка на лимит символов для SpeechKit
         tts_symbols, error_message = is_tts_symbol_limit(user_id, answer_gpt)
-
-        logging.info('Запись ответа GPT в БД')
+        
+        # Запись ответа GPT в БД
         add_message(user_id=user_id, full_message=[answer_gpt, 'assistant', total_gpt_tokens, tts_symbols, 0])
-
+        
         if error_message:
             bot.send_message(user_id, error_message)
             return
 
-        logging.info('Преобразование ответа в аудио и отправка')
+        # Преобразование ответа в аудио и отправка
         status_tts, voice_response = text_to_speech(answer_gpt)
         if status_tts:
             bot.send_voice(user_id, voice_response, reply_to_message_id=message.id)
         else:
             bot.send_message(user_id, answer_gpt, reply_to_message_id=message.id)
-
     except Exception as e:
         logging.error(e)
         bot.send_message(user_id, "Не получилось ответить. Попробуй записать другое сообщение")
@@ -209,38 +207,38 @@ def handle_voice(message):
 def handle_text(message):
     try:
         user_id = message.from_user.id
-
-        logging.info('ВАЛИДАЦИЯ: проверяем, есть ли место для ещё одного пользователя (если пользователь новый)')
+        
+        # ВАЛИДАЦИЯ: проверяем, есть ли место для ещё одного пользователя (если пользователь новый)
         status_check_users, error_message = check_number_of_users(user_id)
         if not status_check_users:
             bot.send_message(user_id, error_message)  # мест нет =(
             return
-
-        logging.info('БД: добавляем сообщение пользователя и его роль в базу данных')
+            
+        # БД: добавляем сообщение пользователя и его роль в базу данных
         full_user_message = [message.text, 'user', 0, 0, 0]
         add_message(user_id=user_id, full_message=full_user_message)
-
-        logging.info('ВАЛИДАЦИЯ: считаем количество доступных пользователю GPT-токенов')
-        logging.info('получаем последние 4 (COUNT_LAST_MSG) сообщения и количество уже потраченных токенов')
+        
+        # ВАЛИДАЦИЯ: считаем количество доступных пользователю GPT-токенов
+        # получаем последние 4 (COUNT_LAST_MSG) сообщения и количество уже потраченных токенов
         last_messages, total_spent_tokens = select_n_last_messages(user_id, COUNT_LAST_MSG)
-        logging.info('получаем сумму уже потраченных токенов + токенов в новом сообщении и оставшиеся лимиты пользователя')
+        # получаем сумму уже потраченных токенов + токенов в новом сообщении и оставшиеся лимиты пользователя
         total_gpt_tokens, error_message = is_gpt_token_limit(last_messages, total_spent_tokens)
         if error_message:
-            logging.info('уведомляем пользователя и прекращаем выполнение функции')
+                # если что-то пошло не так — уведомляем пользователя и прекращаем выполнение функции
             bot.send_message(user_id, error_message)
             return
 
-        logging.info('GPT: отправляем запрос к GPT')
+        # GPT: отправляем запрос к GPT
         status_gpt, answer_gpt, tokens_in_answer = ask_gpt(last_messages)
-        logging.info('GPT: обрабатываем ответ от GPT')
+        # GPT: обрабатываем ответ от GPT
         if not status_gpt:
-            logging.info('уведомляем пользователя и прекращаем выполнение функции')
+                # если что-то пошло не так — уведомляем пользователя и прекращаем выполнение функции
             bot.send_message(user_id, answer_gpt)
             return
         # сумма всех потраченных токенов + токены в ответе GPT
         total_gpt_tokens += tokens_in_answer
 
-        logging.info('БД: добавляем ответ GPT и потраченные токены в базу данных')
+        # БД: добавляем ответ GPT и потраченные токены в базу данных
         full_gpt_message = [answer_gpt, 'assistant', total_gpt_tokens, 0, 0]
         add_message(user_id=user_id, full_message=full_gpt_message)
 
