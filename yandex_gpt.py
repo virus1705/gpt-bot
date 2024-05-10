@@ -1,16 +1,16 @@
 import requests
 import logging
 from config import LOGS, MAX_GPT_TOKENS, SYSTEM_PROMPT
-from creds import get_creds  # модуль для получения токенов
+from creds import get_creds  # Г¬Г®Г¤ГіГ«Гј Г¤Г«Гї ГЇГ®Г«ГіГ·ГҐГ­ГЁГї ГІГ®ГЄГҐГ­Г®Гў
 
-IAM_TOKEN, FOLDER_ID = get_creds()  # получаем iam_token и folder_id.txt из файлов
+IAM_TOKEN, FOLDER_ID = get_creds()  # ГЇГ®Г«ГіГ·Г ГҐГ¬ iam_token ГЁ folder_id.txt ГЁГ§ ГґГ Г©Г«Г®Гў
 
 logging.basicConfig(filename=LOGS,
                     level=logging.ERROR,
                     format="%(asctime)s FILE: %(filename)s IN: %(funcName)s MESSAGE: %(message)s",
                     filemode="w")
 
-# подсчитываем количество токенов в сообщениях
+# ГЇГ®Г¤Г±Г·ГЁГІГ»ГўГ ГҐГ¬ ГЄГ®Г«ГЁГ·ГҐГ±ГІГўГ® ГІГ®ГЄГҐГ­Г®Гў Гў Г±Г®Г®ГЎГ№ГҐГ­ГЁГїГµ
 def count_gpt_tokens(messages):
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/tokenizeCompletion"
     headers = {
@@ -24,10 +24,10 @@ def count_gpt_tokens(messages):
     try:
         return len(requests.post(url=url, json=data, headers=headers).json()['tokens'])
     except Exception as e:
-        logging.error(e)  # если ошибка - записываем её в логи
+        logging.error(e)  # ГҐГ±Г«ГЁ Г®ГёГЁГЎГЄГ  - Г§Г ГЇГЁГ±Г»ГўГ ГҐГ¬ ГҐВё Гў Г«Г®ГЈГЁ
         return 0
 
-# запрос к GPT
+# Г§Г ГЇГ°Г®Г± ГЄ GPT
 def ask_gpt(messages):
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
@@ -41,16 +41,16 @@ def ask_gpt(messages):
             "temperature": 0.7,
             "maxTokens": MAX_GPT_TOKENS
         },
-        "messages": SYSTEM_PROMPT + messages  # добавляем к системному сообщению предыдущие сообщения
+        "messages": SYSTEM_PROMPT + messages  # Г¤Г®ГЎГ ГўГ«ГїГҐГ¬ ГЄ Г±ГЁГ±ГІГҐГ¬Г­Г®Г¬Гі Г±Г®Г®ГЎГ№ГҐГ­ГЁГѕ ГЇГ°ГҐГ¤Г»Г¤ГіГ№ГЁГҐ Г±Г®Г®ГЎГ№ГҐГ­ГЁГї
     }
     try:
         response = requests.post(url, headers=headers, json=data)
-        # проверяем статус код
+        # ГЇГ°Г®ГўГҐГ°ГїГҐГ¬ Г±ГІГ ГІГіГ± ГЄГ®Г¤
         if response.status_code != 200:
-            return False, f"Ошибка GPT. Статус-код: {response.status_code}", None
+            return False, f"ГЋГёГЁГЎГЄГ  GPT. Г‘ГІГ ГІГіГ±-ГЄГ®Г¤: {response.status_code}", None
         answer = response.json()['result']['alternatives'][0]['message']['text']
         tokens_in_answer = count_gpt_tokens([{'role': 'assistant', 'text': answer}])
         return True, answer, tokens_in_answer
     except Exception as e:
-        logging.error(e)  # если ошибка - записываем её в логи
-        return False, "Ошибка при обращении к GPT",  None
+        logging.error(e)  # ГҐГ±Г«ГЁ Г®ГёГЁГЎГЄГ  - Г§Г ГЇГЁГ±Г»ГўГ ГҐГ¬ ГҐВё Гў Г«Г®ГЈГЁ
+        return False, "ГЋГёГЁГЎГЄГ  ГЇГ°ГЁ Г®ГЎГ°Г Г№ГҐГ­ГЁГЁ ГЄ GPT",  None
