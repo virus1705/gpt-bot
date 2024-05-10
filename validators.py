@@ -1,10 +1,7 @@
-import logging  # модуль для сбора логов
-import math  # математический модуль для округления
-# подтягиваем константы из config файла
-from config import LOGS, MAX_USERS, MAX_USER_GPT_TOKENS, MAX_USER_TTS_SYMBOLS, MAX_USER_STT_BLOCKS
-# подтягиваем функции для работы с БД
-from database import count_users, count_all_limits, count_all_symbol, count_all_blocks
-# подтягиваем функцию для подсчета токенов в списке сообщений
+import logging
+import math
+from config import LOGS, MAX_USERS, MAX_USER_GPT_TOKENS,MAX_USER_TTS_SYMBOLS,MAX_USER_STT_BLOCKS,MAX_TTS_SYMBOLS
+from database import count_users, count_all_limits
 from yandex_gpt import count_gpt_tokens
 
 # настраиваем запись логов в файл
@@ -30,36 +27,41 @@ def is_gpt_token_limit(messages, total_spent_tokens):
 def is_stt_block_limit(message, duration):
     user_id = message.from_user.id
 
-    logging.info('Переводим секунды в аудиоблоки')
+    # Переводим секунды в аудиоблоки
     audio_blocks = math.ceil(duration / 15) # округляем в большую сторону
     # Функция из БД для подсчёта всех потраченных пользователем аудиоблоков
-    all_blocks = count_all_blocks(user_id) + audio_blocks
+    all_blocks = count_all_limits(user_id,"stt_blocks") + audio_blocks
 
-    logging.info('Проверяем, что аудио длится меньше 30 секунд')
+    # Проверяем, что аудио длится меньше 30 секунд
     if duration >= 30:
-        return None
+        msg = "SpeechKit STT работает с голосовыми сообщениями меньше 30 секунд"
+        return None, msg
 
-    logging.info('Сравниваем all_blocks с количеством доступных пользователю аудиоблоков')
+    # Сравниваем all_blocks с количеством доступных пользователю аудиоблоков
     if all_blocks >= MAX_USER_STT_BLOCKS:
-        return None
+        msg = f"Превышен общий лимит SpeechKit STT {MAX_USER_STT_BLOCKS}. Использовано {all_blocks} блоков. Доступно: {MAX_USER_STT_BLOCKS - all_blocks}"
+        return None, msg
 
-    return audio_blocks
+    return audio_blocks, ""
 
-# проверяем, не превысил ли пользователь лимиты на преобразование текста в аудио
 def is_tts_symbol_limit(message, text):
-    user_id = message.from_user.id
-    text_symbols = len(text)
+    user_id = message.chat.id
+    text_symbols: int = len(text)
+    symbols: int = count_all_limits(user_id, "tts_symbols")
 
     # Функция из БД для подсчёта всех потраченных пользователем символов
-    all_symbols = count_all_symbol(user_id) + text_symbols
+    all_symbols = symbols + text_symbols
 
-    logging.info('Сравниваем all_symbols с количеством доступных пользователю символов')
+    # Сравниваем all_symbols с количеством доступных пользователю символов
     if all_symbols >= MAX_USER_TTS_SYMBOLS:
         msg = f"Превышен общий лимит SpeechKit TTS {MAX_USER_TTS_SYMBOLS}. Использовано: {all_symbols} символов. Доступно: {MAX_USER_TTS_SYMBOLS - all_symbols}"
-        return None
 
-    logging.info('Сравниваем количество символов в тексте с максимальным количеством символов в тексте')
-    if text_symbols >= MAX_USER_TTS_SYMBOLS:
-        msg = f"Превышен лимит SpeechKit TTS на запрос {MAX_USER_TTS_SYMBOLS}, в сообщении {text_symbols} символов"
-        return None
-    return len(text)
+        return None, msg
+
+        # Сравниваем количество символов в тексте с максимальным количеством символов в тексте
+    if text_symbols >= MAX_TTS_SYMBOLS:
+        msg = f"Превышен лимит SpeechKit TTS на запрос {MAX_TTS_SYMBOLS}, в сообщении {text_symbols} символов"
+
+        return None, msg
+
+    return len(text), ""
