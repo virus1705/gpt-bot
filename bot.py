@@ -5,10 +5,10 @@ from SpeechKit import text_to_speech, speech_to_text
 from yandex_gpt import *
 from validators import *
 from database import *
-create_database()
 from creds import get_bot_token
 
 bot = telebot.TeleBot(get_bot_token())
+create_database()
 
 def create_keyboard(buttons_list):
     keyboard = ReplyKeyboardMarkup(row_width=2, resize_keyboard=True, one_time_keyboard=True)
