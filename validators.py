@@ -1,65 +1,65 @@
-import logging  # модуль для сбора логов
-import math  # математический модуль для округления
-# подтягиваем константы из config файла
+import logging  # РјРѕРґСѓР»СЊ РґР»СЏ СЃР±РѕСЂР° Р»РѕРіРѕРІ
+import math  # РјР°С‚РµРјР°С‚РёС‡РµСЃРєРёР№ РјРѕРґСѓР»СЊ РґР»СЏ РѕРєСЂСѓРіР»РµРЅРёСЏ
+# РїРѕРґС‚СЏРіРёРІР°РµРј РєРѕРЅСЃС‚Р°РЅС‚С‹ РёР· config С„Р°Р№Р»Р°
 from config import LOGS, MAX_USERS, MAX_USER_GPT_TOKENS, MAX_USER_TTS_SYMBOLS, MAX_USER_STT_BLOCKS
-# подтягиваем функции для работы с БД
+# РїРѕРґС‚СЏРіРёРІР°РµРј С„СѓРЅРєС†РёРё РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ Р‘Р”
 from database import count_users, count_all_limits, count_all_symbol, count_all_blocks
-# подтягиваем функцию для подсчета токенов в списке сообщений
+# РїРѕРґС‚СЏРіРёРІР°РµРј С„СѓРЅРєС†РёСЋ РґР»СЏ РїРѕРґСЃС‡РµС‚Р° С‚РѕРєРµРЅРѕРІ РІ СЃРїРёСЃРєРµ СЃРѕРѕР±С‰РµРЅРёР№
 from yandex_gpt import count_gpt_tokens
 
-# настраиваем запись логов в файл
+# РЅР°СЃС‚СЂР°РёРІР°РµРј Р·Р°РїРёСЃСЊ Р»РѕРіРѕРІ РІ С„Р°Р№Р»
 logging.basicConfig(filename=LOGS, level=logging.ERROR, format="%(asctime)s FILE: %(filename)s IN: %(funcName)s MESSAGE: %(message)s", filemode="w")
 
-# получаем количество уникальных пользователей, кроме самого пользователя
+# РїРѕР»СѓС‡Р°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ СѓРЅРёРєР°Р»СЊРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№, РєСЂРѕРјРµ СЃР°РјРѕРіРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
 def check_number_of_users(user_id):
     count = count_users(user_id)
     if count is None:
-        return None, "Ошибка при работе с БД"
+        return None, "РћС€РёР±РєР° РїСЂРё СЂР°Р±РѕС‚Рµ СЃ Р‘Р”"
     if count > MAX_USERS:
-        return None, "Превышено максимальное количество пользователей"
+        return None, "РџСЂРµРІС‹С€РµРЅРѕ РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№"
     return True, ""
 
-# проверяем, не превысил ли пользователь лимиты на общение с GPT
+# РїСЂРѕРІРµСЂСЏРµРј, РЅРµ РїСЂРµРІС‹СЃРёР» Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р»РёРјРёС‚С‹ РЅР° РѕР±С‰РµРЅРёРµ СЃ GPT
 def is_gpt_token_limit(messages, total_spent_tokens):
     all_tokens = count_gpt_tokens(messages) + total_spent_tokens
     if all_tokens > MAX_USER_GPT_TOKENS:
-        return None, f"Превышен общий лимит GPT-токенов {MAX_USER_GPT_TOKENS}"
+        return None, f"РџСЂРµРІС‹С€РµРЅ РѕР±С‰РёР№ Р»РёРјРёС‚ GPT-С‚РѕРєРµРЅРѕРІ {MAX_USER_GPT_TOKENS}"
     return all_tokens, ""
 
-# проверяем, не превысил ли пользователь лимиты на преобразование аудио в текст
+# РїСЂРѕРІРµСЂСЏРµРј, РЅРµ РїСЂРµРІС‹СЃРёР» Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р»РёРјРёС‚С‹ РЅР° РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ Р°СѓРґРёРѕ РІ С‚РµРєСЃС‚
 def is_stt_block_limit(message, duration):
     user_id = message.from_user.id
 
-    logging.info('Переводим секунды в аудиоблоки')
-    audio_blocks = math.ceil(duration / 15) # округляем в большую сторону
-    # Функция из БД для подсчёта всех потраченных пользователем аудиоблоков
+    logging.info('РџРµСЂРµРІРѕРґРёРј СЃРµРєСѓРЅРґС‹ РІ Р°СѓРґРёРѕР±Р»РѕРєРё')
+    audio_blocks = math.ceil(duration / 15) # РѕРєСЂСѓРіР»СЏРµРј РІ Р±РѕР»СЊС€СѓСЋ СЃС‚РѕСЂРѕРЅСѓ
+    # Р¤СѓРЅРєС†РёСЏ РёР· Р‘Р” РґР»СЏ РїРѕРґСЃС‡С‘С‚Р° РІСЃРµС… РїРѕС‚СЂР°С‡РµРЅРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј Р°СѓРґРёРѕР±Р»РѕРєРѕРІ
     all_blocks = count_all_blocks(user_id) + audio_blocks
 
-    logging.info('Проверяем, что аудио длится меньше 30 секунд')
+    logging.info('РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ Р°СѓРґРёРѕ РґР»РёС‚СЃСЏ РјРµРЅСЊС€Рµ 30 СЃРµРєСѓРЅРґ')
     if duration >= 30:
         return None
 
-    logging.info('Сравниваем all_blocks с количеством доступных пользователю аудиоблоков')
+    logging.info('РЎСЂР°РІРЅРёРІР°РµРј all_blocks СЃ РєРѕР»РёС‡РµСЃС‚РІРѕРј РґРѕСЃС‚СѓРїРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ Р°СѓРґРёРѕР±Р»РѕРєРѕРІ')
     if all_blocks >= MAX_USER_STT_BLOCKS:
         return None
 
     return audio_blocks
 
-# проверяем, не превысил ли пользователь лимиты на преобразование текста в аудио
+# РїСЂРѕРІРµСЂСЏРµРј, РЅРµ РїСЂРµРІС‹СЃРёР» Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р»РёРјРёС‚С‹ РЅР° РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ С‚РµРєСЃС‚Р° РІ Р°СѓРґРёРѕ
 def is_tts_symbol_limit(message, text):
     user_id = message.from_user.id
     text_symbols = len(text)
 
-    # Функция из БД для подсчёта всех потраченных пользователем символов
+    # Р¤СѓРЅРєС†РёСЏ РёР· Р‘Р” РґР»СЏ РїРѕРґСЃС‡С‘С‚Р° РІСЃРµС… РїРѕС‚СЂР°С‡РµРЅРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј СЃРёРјРІРѕР»РѕРІ
     all_symbols = count_all_symbol(user_id) + text_symbols
 
-    logging.info('Сравниваем all_symbols с количеством доступных пользователю символов')
+    logging.info('РЎСЂР°РІРЅРёРІР°РµРј all_symbols СЃ РєРѕР»РёС‡РµСЃС‚РІРѕРј РґРѕСЃС‚СѓРїРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ СЃРёРјРІРѕР»РѕРІ')
     if all_symbols >= MAX_USER_TTS_SYMBOLS:
-        msg = f"Превышен общий лимит SpeechKit TTS {MAX_USER_TTS_SYMBOLS}. Использовано: {all_symbols} символов. Доступно: {MAX_USER_TTS_SYMBOLS - all_symbols}"
+        msg = f"РџСЂРµРІС‹С€РµРЅ РѕР±С‰РёР№ Р»РёРјРёС‚ SpeechKit TTS {MAX_USER_TTS_SYMBOLS}. РСЃРїРѕР»СЊР·РѕРІР°РЅРѕ: {all_symbols} СЃРёРјРІРѕР»РѕРІ. Р”РѕСЃС‚СѓРїРЅРѕ: {MAX_USER_TTS_SYMBOLS - all_symbols}"
         return None
 
-    logging.info('Сравниваем количество символов в тексте с максимальным количеством символов в тексте')
+    logging.info('РЎСЂР°РІРЅРёРІР°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјРІРѕР»РѕРІ РІ С‚РµРєСЃС‚Рµ СЃ РјР°РєСЃРёРјР°Р»СЊРЅС‹Рј РєРѕР»РёС‡РµСЃС‚РІРѕРј СЃРёРјРІРѕР»РѕРІ РІ С‚РµРєСЃС‚Рµ')
     if text_symbols >= MAX_USER_TTS_SYMBOLS:
-        msg = f"Превышен лимит SpeechKit TTS на запрос {MAX_USER_TTS_SYMBOLS}, в сообщении {text_symbols} символов"
+        msg = f"РџСЂРµРІС‹С€РµРЅ Р»РёРјРёС‚ SpeechKit TTS РЅР° Р·Р°РїСЂРѕСЃ {MAX_USER_TTS_SYMBOLS}, РІ СЃРѕРѕР±С‰РµРЅРёРё {text_symbols} СЃРёРјРІРѕР»РѕРІ"
         return None
     return len(text)
